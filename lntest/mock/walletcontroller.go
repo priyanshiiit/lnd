@@ -105,6 +105,12 @@ func (w *WalletController) ListAccounts(string,
 	return nil, nil
 }
 
+func (w *WalletController) ListAddresses(string) ([]string, error) {
+
+	return nil, nil
+}
+
+
 // ImportAccount currently returns a dummy value.
 func (w *WalletController) ImportAccount(string, *hdkeychain.ExtendedKey,
 	uint32, *waddrmgr.AddressType, bool) (*waddrmgr.AccountProperties,

@@ -710,6 +710,111 @@ func (b *BtcWallet) ListAccounts(name string,
 	return res, nil
 }
 
+// ListAccounts retrieves all accounts belonging to the wallet by default. A
+// name and key scope filter can be provided to filter through all of the wallet
+// accounts and return only those matching.
+//
+// This is a part of the WalletController interface.
+func (b *BtcWallet) ListAddresses(name string) ([]string, error) {
+	var res []uint32
+	if name != "" {
+		if name == lnwallet.DefaultAccountName ||
+			name == waddrmgr.ImportedAddrAccountName {
+
+			a1, err := b.wallet.AccountPropertiesByName(
+				waddrmgr.KeyScopeBIP0049Plus, name,
+			)
+			if err != nil {
+				return nil, err
+			}
+			res = append(res, a1.AccountNumber)
+
+			a2, err := b.wallet.AccountPropertiesByName(
+				waddrmgr.KeyScopeBIP0084, name,
+			)
+			if err != nil {
+				return nil, err
+			}
+			res = append(res, a2.AccountNumber)
+
+			a3, err := b.wallet.AccountPropertiesByName(
+				waddrmgr.KeyScopeBIP0086, name,
+			)
+			if err != nil {
+				return nil, err
+			}
+			res = append(res, a3.AccountNumber)
+		} else {
+			// Otherwise, we'll retrieve the single account that's mapped by
+			// the given name.
+			_, acctNum, err := b.wallet.LookupAccount(name)
+			if err != nil {
+				return nil, err
+			}
+			res = append(res, acctNum)
+		}
+	} else {
+		accounts, err := b.wallet.Accounts(waddrmgr.KeyScopeBIP0049Plus)
+		if err != nil {
+			return nil, err
+		}
+		for _, account := range accounts.Accounts {
+			account := account
+			res = append(res, account.AccountProperties.AccountNumber)
+		}
+
+		accounts, err = b.wallet.Accounts(waddrmgr.KeyScopeBIP0084)
+		if err != nil {
+			return nil, err
+		}
+		for _, account := range accounts.Accounts {
+			account := account
+			res = append(res, account.AccountProperties.AccountNumber)
+		}
+
+		accounts, err = b.wallet.Accounts(waddrmgr.KeyScopeBIP0086)
+		if err != nil {
+			return nil, err
+		}
+		for _, account := range accounts.Accounts {
+			account := account
+			res = append(res, account.AccountProperties.AccountNumber)
+		}
+
+		accounts, err = b.wallet.Accounts(waddrmgr.KeyScope{
+			Purpose: keychain.BIP0043Purpose,
+			Coin:    b.cfg.CoinType,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, account := range accounts.Accounts {
+			account := account
+			res = append(res, account.AccountProperties.AccountNumber)
+		}
+	}
+
+	type addressProperty struct {
+		address  string
+		internal bool
+	}
+	var addressesList map[uint32][]addressProperty = make(map[uint32][]addressProperty)
+	for _, accntNumber := range res {
+		var addressProperties []addressProperty
+		addresses, _ := b.wallet.AccountAddresses(accntNumber)
+		for _, address := range addresses {
+			addressInfo, _ := b.wallet.AddressInfo(address)
+			addressProperties = append(addressProperties, addressProperty{address: address.String(), internal: addressInfo.Internal()})
+		}
+
+		addressesList[accntNumber] = addressProperties
+	}
+
+	fmt.Println("********************addresses*********************\n", addressesList)
+
+	return nil, nil
+}
+
 // ImportAccount imports an account backed by an account extended public key.
 // The master key fingerprint denotes the fingerprint of the root key
 // corresponding to the account public key (also known as the key with

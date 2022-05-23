@@ -1,4 +1,4 @@
-//go:build walletrpc
+//go:build walletrpc 
 // +build walletrpc
 
 package walletrpc
@@ -117,6 +117,10 @@ var (
 			Action: "read",
 		}},
 		"/walletrpc.WalletKit/ListUnspent": {{
+			Entity: "onchain",
+			Action: "read",
+		}},
+		"/walletrpc.WalletKit/ListAddresses": {{
 			Entity: "onchain",
 			Action: "read",
 		}},
@@ -364,6 +368,7 @@ func (w *WalletKit) ListUnspent(ctx context.Context,
 		utxos, err = w.cfg.Wallet.ListUnspentWitness(
 			minConfs, maxConfs, req.Account,
 		)
+
 		return err
 	})
 	if err != nil {
@@ -1446,6 +1451,19 @@ func (w *WalletKit) ListAccounts(ctx context.Context,
 	}
 
 	return &ListAccountsResponse{Accounts: rpcAccounts}, nil
+}
+
+func (w *WalletKit) ListAddresses(ctx context.Context,
+	req *ListAddressesRequest) (*ListAddressesResponse, error) {
+
+	addresses, err := w.cfg.Wallet.ListAddresses(req.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	rpcAddresses := make([]string, 0, len(addresses))
+
+	return &ListAddressesResponse{AddressList: rpcAddresses}, nil
 }
 
 // parseAddrType parses an address type from its RPC representation to a

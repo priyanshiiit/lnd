@@ -64,6 +64,7 @@ service WalletKit {
     */
     rpc ListAccounts (ListAccountsRequest) returns (ListAccountsResponse);
 
+    rpc ListAddresses (ListAddressesRequest) returns (ListAddressesResponse);
     /*
     ImportAccount imports an account backed by an account extended public key.
     The master key fingerprint denotes the fingerprint of the root key
@@ -389,6 +390,18 @@ message Account {
     // Whether the wallet stores private keys for the account.
     bool watch_only = 8;
 }
+
+message AddressBalance {
+    string address = 1;
+    int64 balance = 2;
+}
+
+message AddressesResponseType {
+    string name = 1;
+    repeated AddressBalance external = 2;
+    repeated AddressBalance internal = 3;
+}
+
 message ListAccountsRequest {
     // An optional filter to only return accounts matching this name.
     string name = 1;
@@ -399,6 +412,19 @@ message ListAccountsRequest {
 message ListAccountsResponse {
     repeated Account accounts = 1;
 }
+
+message ListAddressesRequest {
+    // An optional filter to only return accounts matching this name.
+    string name = 1;
+}
+
+message ListAddressesResponse {
+    repeated string address_list = 1;
+}
+
+// message ListAddressesResponse {
+//     repeated AddressesResponseType address_list = 1;
+// }
 
 message ImportAccountRequest {
     // A name to identify the account with.

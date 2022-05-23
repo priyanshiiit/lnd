@@ -43,6 +43,14 @@ var (
 			importPubKeyCommand,
 		},
 	}
+
+	addressesCommand = cli.Command{
+		Name:  "addresses",
+		Usage: "Interact with wallet addresses.",
+		Subcommands: []cli.Command{
+			listAddressesCommand,
+		},
+	}
 )
 
 // walletCommands will return the set of commands to enable for walletrpc
@@ -66,6 +74,7 @@ func walletCommands() []cli.Command {
 				listLeasesCommand,
 				psbtCommand,
 				accountsCommand,
+				addressesCommand,
 			},
 		},
 	}
@@ -1074,6 +1083,49 @@ func listAccounts(ctx *cli.Context) error {
 		AddressType: addrType,
 	}
 	resp, err := walletClient.ListAccounts(ctxc, req)
+	if err != nil {
+		return err
+	}
+
+	printRespJSON(resp)
+
+	return nil
+}
+
+var listAddressesCommand = cli.Command{
+	Name:  "list",
+	Usage: "Retrieve information of existing on-chain wallet addresses.",
+	Description: `
+	Retrieves all accounts belonging to the wallet by default. A name and
+	key scope filter can be provided to filter through all of the wallet
+	accounts and return only those matching.
+	`,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name: "name",
+			Usage: "(optional) only accounts matching this name " +
+				"are returned",
+		},
+	},
+	Action: actionDecorator(listAddresses),
+}
+
+func listAddresses(ctx *cli.Context) error {
+	ctxc := getContext()
+
+	// Display the command's help message if we do not have the expected
+	// number of arguments/flags.
+	if ctx.NArg() > 0 || ctx.NumFlags() > 1 {
+		return cli.ShowCommandHelp(ctx, "list")
+	}
+
+	walletClient, cleanUp := getWalletClient(ctx)
+	defer cleanUp()
+
+	req := &walletrpc.ListAddressesRequest{
+		Name: ctx.String("name"),
+	}
+	resp, err := walletClient.ListAddresses(ctxc, req)
 	if err != nil {
 		return err
 	}

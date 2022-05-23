@@ -1294,6 +1294,17 @@
         }
       }
     },
+    "walletrpcListAddressesResponse": {
+      "type": "object",
+      "properties": {
+        "address_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "walletrpcListLeasesResponse": {
       "type": "object",
       "properties": {

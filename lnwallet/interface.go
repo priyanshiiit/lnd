@@ -230,6 +230,8 @@ type WalletController interface {
 	ListAccounts(string, *waddrmgr.KeyScope) ([]*waddrmgr.AccountProperties,
 		error)
 
+	ListAddresses(string) ([]string,
+		error)
 	// ImportAccount imports an account backed by an account extended public
 	// key. The master key fingerprint denotes the fingerprint of the root
 	// key corresponding to the account public key (also known as the key

@@ -57,6 +57,7 @@ type WalletKitClient interface {
 	//name and key scope filter can be provided to filter through all of the
 	//wallet accounts and return only those matching.
 	ListAccounts(ctx context.Context, in *ListAccountsRequest, opts ...grpc.CallOption) (*ListAccountsResponse, error)
+	ListAddresses(ctx context.Context, in *ListAddressesRequest, opts ...grpc.CallOption) (*ListAddressesResponse, error)
 	//
 	//ImportAccount imports an account backed by an account extended public key.
 	//The master key fingerprint denotes the fingerprint of the root key
@@ -281,6 +282,15 @@ func (c *walletKitClient) ListAccounts(ctx context.Context, in *ListAccountsRequ
 	return out, nil
 }
 
+func (c *walletKitClient) ListAddresses(ctx context.Context, in *ListAddressesRequest, opts ...grpc.CallOption) (*ListAddressesResponse, error) {
+	out := new(ListAddressesResponse)
+	err := c.cc.Invoke(ctx, "/walletrpc.WalletKit/ListAddresses", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *walletKitClient) ImportAccount(ctx context.Context, in *ImportAccountRequest, opts ...grpc.CallOption) (*ImportAccountResponse, error) {
 	out := new(ImportAccountResponse)
 	err := c.cc.Invoke(ctx, "/walletrpc.WalletKit/ImportAccount", in, out, opts...)
@@ -431,6 +441,7 @@ type WalletKitServer interface {
 	//name and key scope filter can be provided to filter through all of the
 	//wallet accounts and return only those matching.
 	ListAccounts(context.Context, *ListAccountsRequest) (*ListAccountsResponse, error)
+	ListAddresses(context.Context, *ListAddressesRequest) (*ListAddressesResponse, error)
 	//
 	//ImportAccount imports an account backed by an account extended public key.
 	//The master key fingerprint denotes the fingerprint of the root key
@@ -603,6 +614,9 @@ func (UnimplementedWalletKitServer) NextAddr(context.Context, *AddrRequest) (*Ad
 }
 func (UnimplementedWalletKitServer) ListAccounts(context.Context, *ListAccountsRequest) (*ListAccountsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListAccounts not implemented")
+}
+func (UnimplementedWalletKitServer) ListAddresses(context.Context, *ListAddressesRequest) (*ListAddressesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListAddresses not implemented")
 }
 func (UnimplementedWalletKitServer) ImportAccount(context.Context, *ImportAccountRequest) (*ImportAccountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ImportAccount not implemented")
@@ -793,6 +807,24 @@ func _WalletKit_ListAccounts_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(WalletKitServer).ListAccounts(ctx, req.(*ListAccountsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WalletKit_ListAddresses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAddressesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WalletKitServer).ListAddresses(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/walletrpc.WalletKit/ListAddresses",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WalletKitServer).ListAddresses(ctx, req.(*ListAddressesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1051,6 +1083,10 @@ var WalletKit_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListAccounts",
 			Handler:    _WalletKit_ListAccounts_Handler,
+		},
+		{
+			MethodName: "ListAddresses",
+			Handler:    _WalletKit_ListAddresses_Handler,
 		},
 		{
 			MethodName: "ImportAccount",
