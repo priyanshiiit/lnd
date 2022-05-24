@@ -716,7 +716,12 @@ func (b *BtcWallet) ListAccounts(name string,
 //
 // This is a part of the WalletController interface.
 func (b *BtcWallet) ListAddresses(name string) ([]string, error) {
-	var res []uint32
+	type accountDetails struct {
+		accountName   string
+		accountNumber uint32
+	}
+
+	var res map[string]accountDetails = make(map[string]accountDetails)
 	if name != "" {
 		if name == lnwallet.DefaultAccountName ||
 			name == waddrmgr.ImportedAddrAccountName {
@@ -727,31 +732,29 @@ func (b *BtcWallet) ListAddresses(name string) ([]string, error) {
 			if err != nil {
 				return nil, err
 			}
-			res = append(res, a1.AccountNumber)
-
+			res[a1.AccountName] = accountDetails{accountName: a1.AccountName, accountNumber: a1.AccountNumber}
 			a2, err := b.wallet.AccountPropertiesByName(
 				waddrmgr.KeyScopeBIP0084, name,
 			)
 			if err != nil {
 				return nil, err
 			}
-			res = append(res, a2.AccountNumber)
-
+			res[a2.AccountName] = accountDetails{accountName: a2.AccountName, accountNumber: a2.AccountNumber}
 			a3, err := b.wallet.AccountPropertiesByName(
 				waddrmgr.KeyScopeBIP0086, name,
 			)
 			if err != nil {
 				return nil, err
 			}
-			res = append(res, a3.AccountNumber)
-		} else {
+			res[a3.AccountName] = accountDetails{accountName: a3.AccountName, accountNumber: a3.AccountNumber}
+			} else {
 			// Otherwise, we'll retrieve the single account that's mapped by
 			// the given name.
 			_, acctNum, err := b.wallet.LookupAccount(name)
 			if err != nil {
 				return nil, err
 			}
-			res = append(res, acctNum)
+			res[name] = accountDetails{accountName: name, accountNumber: acctNum}
 		}
 	} else {
 		accounts, err := b.wallet.Accounts(waddrmgr.KeyScopeBIP0049Plus)
@@ -759,8 +762,8 @@ func (b *BtcWallet) ListAddresses(name string) ([]string, error) {
 			return nil, err
 		}
 		for _, account := range accounts.Accounts {
-			account := account
-			res = append(res, account.AccountProperties.AccountNumber)
+			accountProperties := account.AccountProperties
+			res[accountProperties.AccountName] = accountDetails{accountName: accountProperties.AccountName, accountNumber: accountProperties.AccountNumber}
 		}
 
 		accounts, err = b.wallet.Accounts(waddrmgr.KeyScopeBIP0084)
@@ -768,18 +771,18 @@ func (b *BtcWallet) ListAddresses(name string) ([]string, error) {
 			return nil, err
 		}
 		for _, account := range accounts.Accounts {
-			account := account
-			res = append(res, account.AccountProperties.AccountNumber)
-		}
+			accountProperties := account.AccountProperties
+			res[accountProperties.AccountName] = accountDetails{accountName: accountProperties.AccountName, accountNumber: accountProperties.AccountNumber}
+			}
 
 		accounts, err = b.wallet.Accounts(waddrmgr.KeyScopeBIP0086)
 		if err != nil {
 			return nil, err
 		}
 		for _, account := range accounts.Accounts {
-			account := account
-			res = append(res, account.AccountProperties.AccountNumber)
-		}
+			accountProperties := account.AccountProperties
+			res[accountProperties.AccountName] = accountDetails{accountName: accountProperties.AccountName, accountNumber: accountProperties.AccountNumber}
+			}
 
 		accounts, err = b.wallet.Accounts(waddrmgr.KeyScope{
 			Purpose: keychain.BIP0043Purpose,
@@ -789,28 +792,48 @@ func (b *BtcWallet) ListAddresses(name string) ([]string, error) {
 			return nil, err
 		}
 		for _, account := range accounts.Accounts {
-			account := account
-			res = append(res, account.AccountProperties.AccountNumber)
-		}
+			accountProperties := account.AccountProperties
+			res[accountProperties.AccountName] = accountDetails{accountName: accountProperties.AccountName, accountNumber: accountProperties.AccountNumber}
+			}
 	}
 
 	type addressProperty struct {
 		address  string
 		internal bool
+		balance  btcutil.Amount
 	}
 	var addressesList map[uint32][]addressProperty = make(map[uint32][]addressProperty)
-	for _, accntNumber := range res {
+	var addressBalance map[string]btcutil.Amount = make(map[string]btcutil.Amount)
+	for _, accntDetails := range res {
 		var addressProperties []addressProperty
-		addresses, _ := b.wallet.AccountAddresses(accntNumber)
-		for _, address := range addresses {
-			addressInfo, _ := b.wallet.AddressInfo(address)
-			addressProperties = append(addressProperties, addressProperty{address: address.String(), internal: addressInfo.Internal()})
+		addresses, _ := b.wallet.AccountAddresses(accntDetails.accountNumber)
+		outputs, _ := b.wallet.ListUnspent(0, math.MaxInt32, accntDetails.accountName)
+		for _, output := range outputs {
+			amount, _ := btcutil.NewAmount(output.Amount)
+			// fmt.Println("Address: ",output.Address, "Amount: ", amount)
+			addressBalance[output.Address] += amount
 		}
 
-		addressesList[accntNumber] = addressProperties
+
+		for _, address := range addresses {
+			addressInfo, _ := b.wallet.AddressInfo(address)
+			addressString := address.String()
+			addressProperties = append(addressProperties, addressProperty{address: addressString, internal: addressInfo.Internal(), balance: addressBalance[addressString]})
+		}
+
+		addressesList[accntDetails.accountNumber] = addressProperties
 	}
 
-	fmt.Println("********************addresses*********************\n", addressesList)
+	for key, addressProperties := range addressesList {
+		fmt.Println("Accnt: ", key, "->")
+		for _, addressProperty := range addressProperties {
+			fmt.Println("Address: ", addressProperty.address)
+			fmt.Println("IsInternal: ", addressProperty.internal)
+			fmt.Println("Balance: ", addressProperty.balance)
+			fmt.Println("")
+		}
+		fmt.Println("")
+	}
 
 	return nil, nil
 }
